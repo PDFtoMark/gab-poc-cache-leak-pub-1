@@ -1,0 +1,26 @@
+name: consumer
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  read-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore git-repo cache (as an untrusted PR would)
+        id: c
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .git
+          key: git-repo
+      - name: Inspect restored .git/config
+        run: |
+          echo "cache-hit=${{ steps.c.outputs.cache-hit }}"
+          ls -la .git/config || true
+          echo '--- remote block ---'
+          grep -A2 '\[remote "origin"\]' .git/config || true
+          if grep -q 'x-access-token:ghp_FAKETOKEN_1234567890abcdef' .git/config; then
+            echo "LEAKED_TOKEN_FOUND_IN_PR_CACHE"
+          else
+            echo "TOKEN_NOT_FOUND"
+          fi
